@@ -14,7 +14,7 @@ This repository contains the code for BehaviorRetrieval, a few-shot imitation le
 Find all the configurations for training in `configs/`. We follow the Robomimic convention of keeping hyperparameters in the `.json` files. We have special `office` configuraitons for the Office task due to differences of the Roboverse environment. 
 ## Collecting Data
 * Can task: use the `paired` data provided by Robomimic: [download](http://downloads.cs.stanford.edu/downloads/rt_benchmark/can/paired/image.hdf5)
-* Square task: use the MachinePolicy to collect demonstrations. Read the script in `run_trained_agent.sh` for more information
+* Square task: use the MachinePolicy to collect demonstrations. Read the script in `run_trained_agent.sh` for more information. First download the [image.hdf5](https://robomimic.github.io/docs/v0.2/datasets/robomimic_v0.1.html#method-2-using-direct-download-links) file into `datasets/square/ph`. You might need to downgrad `cython`: `pip install "cython<3"`
 * Office task: use the `scripted_collect.sh` in the `roboverse/scripts` folder. Use `utils/roboverse_to_robomimic.py` to convert the demo format to the one used by our codebase
 
 ## Training The Embedder

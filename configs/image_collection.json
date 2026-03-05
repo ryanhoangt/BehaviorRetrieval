@@ -142,6 +142,9 @@
                     "robot0_eef_pos",
                     "robot0_eef_quat",
                     "robot0_gripper_qpos",
+                    "robot0_gripper_qvel",
+                    "robot0_eef_vel_lin",
+                    "robot0_eef_vel_ang",
                     "object"
                 ],
                 "rgb": ["agentview_image", "robot0_eye_in_hand_image"],

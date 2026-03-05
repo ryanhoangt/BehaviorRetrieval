@@ -26,14 +26,14 @@
 #  --n_rollouts 10 --horizon 400 --seed 11
 
 # for MIXED demos
-#python run_trained_agent.py \
-#  --agent SquarePeg \
-#   --eval_path datasets/square_machine_policy/ \
-#  --reference_data datasets/square/ph/image.hdf5 \
-#  --config configs/image_collection.json \
-#  --machine_oracle --success_only --dataset_obs \
-#  --dataset_path datasets/square_machine_policy/square_400_paired.hdf5 \
-#  --n_rollouts 400 --horizon 400 --seed 11 --paired
+python run_trained_agent.py \
+ --agent SquarePeg \
+  --eval_path datasets/square_machine_policy/ \
+ --reference_data datasets/square/ph/image.hdf5 \
+ --config configs/image_collection.json \
+ --machine_oracle --success_only --dataset_obs \
+ --dataset_path datasets/square_machine_policy/square_400_paired.hdf5 \
+ --n_rollouts 400 --horizon 400 --seed 11 --paired
 
 
 #### HOW TO COLLECT EXPERT DEMOS FROM A PRETRAINED AGENT ####

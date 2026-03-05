@@ -14,3 +14,4 @@ events.out*
 *.hdf5
 *.mp4
 log.txt
+__pycache__
