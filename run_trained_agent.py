@@ -291,65 +291,81 @@ def run_trained_agent(args):
     # maybe open hdf5 to write rollouts
     write_dataset = (args.dataset_path is not None)
     if write_dataset:
-        data_writer = h5py.File(args.dataset_path, "w")
-        data_grp = data_writer.create_group("data")
-        total_samples = 0
+        data_writer = h5py.File(args.dataset_path, "a")  # append mode
 
-    i = 0
+        if "data" in data_writer:
+            data_grp = data_writer["data"]
+            existing_demos = list(data_grp.keys())
+            i = len(existing_demos)   # resume rollout index
+            print(f"Resuming from rollout {i}")
+            total_samples = sum(data_grp[k].attrs["num_samples"] for k in existing_demos)
+        else:
+            data_grp = data_writer.create_group("data")
+            total_samples = 0
+            i = 0
+    else:
+        i = 0
+
     rollout_stats = []
 
     start = time.time()
-    while i < rollout_num_episodes:
-        nonsense = i < rollout_num_episodes / 2 and args.paired and args.machine_oracle
-        if args.machine_oracle:
-            policy.set_nonsense(nonsense)
-        video_writer = None
-        if write_video and i % args.eval_skip == 0:
-            video_writer = imageio.get_writer(args.eval_path + f"/eval{i}.gif", fps=20)
-        print(f"Step {i} / {rollout_num_episodes}. Time taken: {int((time.time() - start) / 60)} mins")
-        stats, traj = rollout(
-            policy=policy,
-            env=env,
-            horizon=rollout_horizon,
-            render=args.render,
-            video_writer=video_writer,
-            video_skip=args.video_skip,
-            return_obs=(write_dataset and args.dataset_obs),
-            camera_names=args.camera_names,
-            machine_policy = args.machine_oracle,
-            real_robot = args.real_robot,
-            goal = expert_data.get_goal() if expert_data is not None else None #provide a goal if needed
-        )
-        if write_video and i % args.eval_skip == 0:
-            video_writer.close()
-        rollout_stats.append(stats)
-        if args.success_only and stats["Success_Rate"] < 1 and not nonsense:
-            # don't save failures
-            continue
-        if "Reject" in stats and stats["Reject"]:
-            print("rejected!")
-            continue # for real robot
+    try:
+        while i < rollout_num_episodes:
+            nonsense = i < rollout_num_episodes / 2 and args.paired and args.machine_oracle
+            if args.machine_oracle:
+                policy.set_nonsense(nonsense)
+            video_writer = None
+            if write_video and i % args.eval_skip == 0:
+                video_writer = imageio.get_writer(args.eval_path + f"/eval{i}.gif", fps=20)
+            print(f"Step {i} / {rollout_num_episodes}. Time taken: {int((time.time() - start) / 60)} mins")
+            stats, traj = rollout(
+                policy=policy,
+                env=env,
+                horizon=rollout_horizon,
+                render=args.render,
+                video_writer=video_writer,
+                video_skip=args.video_skip,
+                return_obs=(write_dataset and args.dataset_obs),
+                camera_names=args.camera_names,
+                machine_policy = args.machine_oracle,
+                real_robot = args.real_robot,
+                goal = expert_data.get_goal() if expert_data is not None else None #provide a goal if needed
+            )
+            if write_video and i % args.eval_skip == 0:
+                video_writer.close()
+            rollout_stats.append(stats)
+            if args.success_only and stats["Success_Rate"] < 1 and not nonsense:
+                # don't save failures
+                continue
+            if "Reject" in stats and stats["Reject"]:
+                print("rejected!")
+                continue # for real robot
 
+            if write_dataset:
+                # store transitions
+                ep_data_grp = data_grp.create_group("demo_{}".format(i))
+                ep_data_grp.create_dataset("actions", data=np.array(traj["actions"]))
+                ep_data_grp.create_dataset("states", data=np.array(traj["states"]))
+                ep_data_grp.create_dataset("rewards", data=np.array(traj["rewards"]))
+                ep_data_grp.create_dataset("dones", data=np.array(traj["dones"]))
+                if args.dataset_obs:
+                    for k in traj["obs"]:
+                        ep_data_grp.create_dataset("obs/{}".format(k), data=np.array(traj["obs"][k]))
+                        ep_data_grp.create_dataset("next_obs/{}".format(k), data=np.array(traj["next_obs"][k]))
+
+                # episode metadata
+                if "model" in traj["initial_state_dict"]:
+                    ep_data_grp.attrs["model_file"] = traj["initial_state_dict"]["model"] # model xml for this episode
+                if args.paired:
+                    ep_data_grp.attrs["nonsense"] = nonsense
+                ep_data_grp.attrs["num_samples"] = traj["actions"].shape[0] # number of transitions in this episode
+                total_samples += traj["actions"].shape[0]
+            i += 1
+    except KeyboardInterrupt:
+        print("Interrupted. Saving progress...")
+    finally:
         if write_dataset:
-            # store transitions
-            ep_data_grp = data_grp.create_group("demo_{}".format(i))
-            ep_data_grp.create_dataset("actions", data=np.array(traj["actions"]))
-            ep_data_grp.create_dataset("states", data=np.array(traj["states"]))
-            ep_data_grp.create_dataset("rewards", data=np.array(traj["rewards"]))
-            ep_data_grp.create_dataset("dones", data=np.array(traj["dones"]))
-            if args.dataset_obs:
-                for k in traj["obs"]:
-                    ep_data_grp.create_dataset("obs/{}".format(k), data=np.array(traj["obs"][k]))
-                    ep_data_grp.create_dataset("next_obs/{}".format(k), data=np.array(traj["next_obs"][k]))
-
-            # episode metadata
-            if "model" in traj["initial_state_dict"]:
-                ep_data_grp.attrs["model_file"] = traj["initial_state_dict"]["model"] # model xml for this episode
-            if args.paired:
-                ep_data_grp.attrs["nonsense"] = nonsense
-            ep_data_grp.attrs["num_samples"] = traj["actions"].shape[0] # number of transitions in this episode
-            total_samples += traj["actions"].shape[0]
-        i += 1
+            data_writer.close()
 
     rollout_stats = TensorUtils.list_of_flat_dict_to_dict_of_list(rollout_stats)
     avg_rollout_stats = { k : np.mean(rollout_stats[k]) for k in rollout_stats }
