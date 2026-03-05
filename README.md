@@ -1,9 +1,10 @@
 # Behavior Retrieval
 This repository contains the code for BehaviorRetrieval, a few-shot imitation learning method that queries unlabeled datasets. 
 # Installing
-1. Install python 3.7 
-2. Install torch + torchvision 
-3. Install [robosuite](https://robosuite.ai/)  (`pip install robosuite` or install from source). You also need to install `mujoco_py`. 
+1. Install python 3.7: `conda create -n behaviorretrieval python=3.7`
+1.5. Install `pillow`: `conda install pillow`
+2. Install torch + torchvision: `pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu` 
+3. Install [robosuite](https://robosuite.ai/)  (`pip install robosuite` or install from source). You also need to install `mujoco_py` (`pip install 'mujoco-py<2.2,>=2.1'`). 
 4. Install dependencies in `requirements.txt` (covers robomimic and roboverse dependencies)
 5. Install robomimic by using `pip install -e .` inside the `robomimic` folder
 6. (If you want to run Office) Install roboverse by using `pip install -e.` inside the `roboverse` folder
